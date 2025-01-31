@@ -1,4 +1,4 @@
-import * as fs from 'fs'
+https://github.com/srbaeza-ai/checkout/blob/main/src%2Fmisc%2Fgenerate-docs.tsimport * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import * as yaml from 'js-yaml'
