@@ -11,6 +11,7 @@ on:
         type: choice
         description: The major version to update
         options:
+          - v5
           - v4
           - v3
           - v2
@@ -19,13 +20,16 @@ jobs:
   tag:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    # Note this update workflow can also be used as a rollback tool.
+    # For that reason, it's best to pin `actions/checkout` to a known, stable version
+    # (typically, about two releases back).
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: Git config
       run: |
-        git config user.name github-actions
-        git config user.email github-actions@github.com
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
     - name: Tag new target
       run: git tag -f ${{ github.event.inputs.major_version }} ${{ github.event.inputs.target }}
     - name: Push new tag

@@ -2,6 +2,9 @@ https://github.com/srbaeza-ai/checkout/blob/main/src%2Fmisc%2Fgenerate-docs.tsim
 import * as os from 'os'
 import * as path from 'path'
 import * as yaml from 'js-yaml'
+import {fileURLToPath} from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 //
 // SUMMARY
@@ -20,7 +23,7 @@ function updateUsage(
   }
 
   // Load the action.yml
-  const actionYaml = yaml.safeLoad(fs.readFileSync(actionYamlPath).toString())
+  const actionYaml = yaml.load(fs.readFileSync(actionYamlPath).toString())
 
   // Load the README
   const originalReadme = fs.readFileSync(readmePath).toString()
@@ -120,7 +123,7 @@ function updateUsage(
 }
 
 updateUsage(
-  'actions/checkout@v4',
+  'actions/checkout@v7',
   path.join(__dirname, '..', '..', 'action.yml'),
   path.join(__dirname, '..', '..', 'README.md')
 )

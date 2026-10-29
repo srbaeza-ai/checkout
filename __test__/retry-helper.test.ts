@@ -1,16 +1,32 @@
-import * as core from '@actions/core'
-import {RetryHelper} from '../lib/retry-helper'
+import {
+  jest,
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterAll
+} from '@jest/globals'
 
-let info: string[]
+let info: string[] = []
+
+// Mock @actions/core before loading retry-helper
+jest.unstable_mockModule('@actions/core', () => ({
+  info: jest.fn((message: string) => {
+    info.push(message)
+  }),
+  debug: jest.fn(),
+  warning: jest.fn(),
+  error: jest.fn()
+}))
+
+// Dynamic imports after mocking
+const {RetryHelper} = await import('../src/retry-helper.js')
+
 let retryHelper: any
 
 describe('retry-helper tests', () => {
   beforeAll(() => {
-    // Mock @actions/core info()
-    jest.spyOn(core, 'info').mockImplementation((message: string) => {
-      info.push(message)
-    })
-
     retryHelper = new RetryHelper(3, 0, 0)
   })
 
@@ -20,7 +36,6 @@ describe('retry-helper tests', () => {
   })
 
   afterAll(() => {
-    // Restore
     jest.restoreAllMocks()
   })
 
@@ -68,7 +83,7 @@ describe('retry-helper tests', () => {
 
   it('all attempts fail succeeds', async () => {
     let attempts = 0
-    let error: Error = (null as unknown) as Error
+    let error: Error = null as unknown as Error
     try {
       await retryHelper.execute(() => {
         throw new Error(`some error ${++attempts}`)

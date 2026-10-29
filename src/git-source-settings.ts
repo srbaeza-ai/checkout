@@ -95,6 +95,11 @@ export interface IGitSourceSettings {
   sshStrict: boolean
 
   /**
+   * The SSH user to login as
+   */
+  sshUser: string
+
+  /**
    * Indicates whether to persist the credentials on disk to enable scripting authenticated git commands
    */
   persistCredentials: boolean
@@ -113,4 +118,10 @@ export interface IGitSourceSettings {
    * User override on the GitHub Server/Host URL that hosts the repository to be cloned
    */
   githubServerUrl: string | undefined
+
+  /**
+   * Opt-in to allow checking out fork pull request code from a workflow
+   * triggered by pull_request_target or workflow_run.
+   */
+  allowUnsafePrCheckout: boolean
 }

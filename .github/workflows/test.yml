@@ -7,14 +7,19 @@ on:
       - main
       - releases/*
 
+
+# Note that when you see patterns like "ref: test-data/v2/basic" within this workflow,
+# these refer to "test-data" branches on this actions/checkout repo.
+# (For example, test-data/v2/basic -> https://github.com/actions/checkout/tree/test-data/v2/basic)
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20.x
-      - uses: actions/checkout@v3
+          node-version: 24.x
+      - uses: actions/checkout@v7
       - run: npm ci
       - run: npm run build
       - run: npm run format-check
@@ -32,7 +37,7 @@ jobs:
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       # Basic checkout
       - name: Checkout basic
@@ -82,6 +87,17 @@ jobs:
       - name: Verify fetch filter
         run: __test__/verify-fetch-filter.sh
 
+      # Fetch tags
+      - name: Checkout with fetch-tags
+        uses: ./
+        with:
+          ref: test-data/v2/basic
+          path: fetch-tags-test
+          fetch-tags: true
+      - name: Verify fetch-tags
+        shell: bash
+        run: __test__/verify-fetch-tags.sh
+
       # Sparse checkout
       - name: Sparse checkout
         uses: ./
@@ -94,6 +110,16 @@ jobs:
 
       - name: Verify sparse checkout
         run: __test__/verify-sparse-checkout.sh
+
+      # Disabled sparse checkout in existing checkout
+      - name: Disabled sparse checkout
+        uses: ./
+        with:
+          path: sparse-checkout
+
+      - name: Verify disabled sparse checkout
+        shell: bash
+        run: set -x && ls -l sparse-checkout/src/git-command-manager.ts
 
       # Sparse checkout (non-cone mode)
       - name: Sparse checkout (non-cone mode)
@@ -150,6 +176,22 @@ jobs:
       - name: Verify submodules recursive
         run: __test__/verify-submodules-recursive.sh
 
+      # Worktree credentials
+      - name: Checkout for worktree test
+        uses: ./
+        with:
+          path: worktree-test
+      - name: Verify worktree credentials
+        shell: bash
+        run: __test__/verify-worktree.sh worktree-test worktree-branch
+
+      # Worktree credentials in container step
+      - name: Verify worktree credentials in container step
+        if: runner.os == 'Linux'
+        uses: docker://bitnami/git:latest
+        with:
+          args: bash __test__/verify-worktree.sh worktree-test container-worktree-branch
+
       # Basic checkout using REST API
       - name: Remove basic
         if: runner.os != 'windows'
@@ -175,7 +217,7 @@ jobs:
   test-proxy:
     runs-on: ubuntu-latest
     container:
-      image: alpine/git:latest
+      image: ghcr.io/actions/test-ubuntu-git:main.20240221.114913.703z
       options: --dns 127.0.0.1
     services:
       squid-proxy:
@@ -187,7 +229,7 @@ jobs:
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       # Basic checkout using git
       - name: Checkout basic
@@ -219,7 +261,7 @@ jobs:
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       # Basic checkout using git
       - name: Checkout basic
@@ -242,20 +284,20 @@ jobs:
           path: basic
       - name: Verify basic
         run: __test__/verify-basic.sh --archive
-    
+
   test-git-container:
     runs-on: ubuntu-latest
     container: bitnami/git:latest
     steps:
       # Clone this repo
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
-          path: v3
+          path: localClone
 
       # Basic checkout using git
       - name: Checkout basic
-        uses: ./v3
+        uses: ./localClone
         with:
           ref: test-data/v2/basic
       - name: Verify basic
@@ -276,7 +318,40 @@ jobs:
           git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
 
       # needed to make checkout post cleanup succeed
-      - name: Fix Checkout v3
-        uses: actions/checkout@v3
+      - name: Fix Checkout v6
+        uses: actions/checkout@v7
         with:
-          path: v3
+          path: localClone
+
+  test-output:
+    runs-on: ubuntu-latest
+    steps:
+      # Clone this repo
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          path: actions-checkout
+
+      # Basic checkout using git
+      - name: Checkout basic
+        id: checkout
+        uses: ./actions-checkout
+        with:
+          path: cloned-using-local-action
+          ref: test-data/v2/basic
+
+      # Verify output
+      - name: Verify output
+        run: |
+          echo "Commit: ${{ steps.checkout.outputs.commit }}"
+          echo "Ref: ${{ steps.checkout.outputs.ref }}"
+
+          if [ "${{ steps.checkout.outputs.ref }}" != "test-data/v2/basic" ]; then
+            echo "Expected ref to be test-data/v2/basic"
+            exit 1
+          fi
+
+          if [ "${{ steps.checkout.outputs.commit }}" != "82f71901cf8c021332310dcc8cdba84c4193ff5d" ]; then
+            echo "Expected commit to be 82f71901cf8c021332310dcc8cdba84c4193ff5d"
+            exit 1
+          fi
